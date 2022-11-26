@@ -1,0 +1,23 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+
+hide footbox
+-> SellerGroupController: doGet(req, res)
+activate SellerGroupController
+
+SellerGroupController -> UserMapper: findUserInSellerGroup(sgId)
+activate UserMapper
+
+UserMapper -> Database: "SELECT id, email... FROM account WHERE seller_group=sgId";
+activate Database
+
+Database --> UserMapper: resultSet
+deactivate Database
+
+UserMapper --> "allUsers: ArrayList<User>": create(title=rs.getString("email"), ...)
+UserMapper --> SellerGroupController: allUsers
+deactivate UserMapper
+
+
+@enduml

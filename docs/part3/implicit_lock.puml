@@ -1,0 +1,93 @@
+@startuml implicit lock
+
+hide footbox
+
+actor admin
+actor seller
+
+admin -> SellerGroupController : remove seller from sellerGroup
+activate SellerGroupController
+
+seller -> UserController : update user info
+activate UserController
+
+create LockedMapper
+UserController -> LockedMapper : new LockedMapper(sellerId)
+activate LockedMapper
+
+LockedMapper -> ExclusiveWriteManager : aquireLock(sellerId, Thread1)
+activate ExclusiveWriteManager
+
+SellerGroupController -> ExclusiveWriteManager : aquireLock(sellerId, Thread2)
+activate ExclusiveWriteManager
+
+ExclusiveWriteManager -> SellerGroupController
+deactivate ExclusiveWriteManager
+
+SellerGroupController -> UserMapper : readOne(sellerId)
+activate UserMapper
+
+UserMapper -> SellerGroupController : new User
+deactivate UserMapper
+
+SellerGroupController -> SellerGroupController : delete sellerGroup from user
+
+SellerGroupController -> UserMapper : update(User)
+activate UserMapper
+
+deactivate UserMapper
+
+SellerGroupController -> ExclusiveWriteManager : releaseLock(sellerId, Thread2)
+activate ExclusiveWriteManager
+
+ExclusiveWriteManager -> SellerGroupController
+deactivate ExclusiveWriteManager
+
+ExclusiveWriteManager -> LockedMapper
+deactivate ExclusiveWriteManager
+
+SellerGroupController -> admin : reload sellerGroup page
+deactivate SellerGroupController
+
+LockedMapper -> UserController : new LockedMapper
+deactivate LockedMapper
+
+UserController -> LockedMapper : readOne(sellerId)
+activate LockedMapper
+
+LockedMapper -> UserMapper : readOne(sellerId)
+activate UserMapper
+
+UserMapper -> LockedMapper : new User with no sellergroup
+deactivate UserMapper
+
+LockedMapper -> UserController : new User with no sellergroup
+deactivate LockedMapper
+
+UserController -> UserController : update user details
+
+UserController -> LockedMapper : update(new User)
+activate LockedMapper
+
+LockedMapper -> UserMapper : update(new User)
+activate UserMapper
+
+deactivate UserMapper
+
+deactivate LockedMapper
+
+UserController -> LockedMapper : close()
+activate LockedMapper
+
+LockedMapper -> ExclusiveWriteManager : releaseLock(sellerId, Thread1)
+activate ExclusiveWriteManager
+
+ExclusiveWriteManager -> LockedMapper
+deactivate ExclusiveWriteManager
+
+deactivate LockedMapper
+destroy LockedMapper
+
+UserController -> seller : reload user page
+
+@enduml

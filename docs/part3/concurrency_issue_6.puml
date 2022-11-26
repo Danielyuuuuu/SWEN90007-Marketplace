@@ -1,0 +1,77 @@
+@startuml View all users
+
+hide footbox
+actor Admin
+actor Buyer
+
+activate Admin
+Admin -> ListingController: archive a fix price lisitng
+
+activate Buyer
+Buyer -> PurchasesController: purchase an item from the fix price listing
+activate PurchasesController
+activate ListingController
+ListingController -> ExclusiveWriteManager: acquireLock(listingID, threadName)
+activate ExclusiveWriteManager
+
+PurchasesController -> ExclusiveWriteManager: acquireLock(listingID, threadName)
+
+ExclusiveWriteManager --> ListingController: lock acquired
+ListingController -> FixPriceListingMapper: readOne(listingID)
+activate FixPriceListingMapper
+FixPriceListingMapper -> PostgreSQL: SELECT * FROM fixed_price_listing WHERE id = listingID;
+activate PostgreSQL
+PostgreSQL --> FixPriceListingMapper: resultSet
+deactivate PostgreSQL
+
+create "fixPriceListing: FixPriceListing"
+FixPriceListingMapper -> "fixPriceListing: FixPriceListing": create the fix price listing object
+
+FixPriceListingMapper --> ListingController: fixPriceListing
+deactivate FixPriceListingMapper
+ListingController -> ListingController: fixPriceListing.setArchive(true)
+
+ListingController -> FixPriceListingMapper: update(fixPriceListing, conn);
+activate FixPriceListingMapper
+FixPriceListingMapper -> PostgreSQL: UPDATE fixed_price_listing SET archive = true WHERE id = listingID;
+activate PostgreSQL
+PostgreSQL --> FixPriceListingMapper: resultSet
+deactivate PostgreSQL
+
+FixPriceListingMapper --> ListingController: success
+deactivate FixPriceListingMapper
+
+ListingController -> ExclusiveWriteManager: releaseLock(listingID, threadName)
+ExclusiveWriteManager --> ListingController: lock released
+
+
+ListingController --> Admin: success
+deactivate ListingController
+deactivate Admin
+
+
+ExclusiveWriteManager --> PurchasesController: lock acquired
+
+
+PurchasesController -> FixPriceListingMapper: readOne(listingID)
+activate FixPriceListingMapper
+FixPriceListingMapper -> PostgreSQL: SELECT * FROM fixed_price_listing WHERE id = listingID;
+activate PostgreSQL
+PostgreSQL --> FixPriceListingMapper: resultSet
+deactivate PostgreSQL
+
+create "fixPriceListing: FixPriceListing"
+FixPriceListingMapper -> "fixPriceListing: FixPriceListing": create the fix price listing object
+FixPriceListingMapper --> PurchasesController: fixPriceListing
+deactivate FixPriceListingMapper
+
+PurchasesController -> PurchasesController: check if the fixPriceListing is archived
+
+PurchasesController --> ExclusiveWriteManager: releaseLock(listingID, threadName)
+
+ExclusiveWriteManager --> PurchasesController: lock released
+deactivate ExclusiveWriteManager
+
+PurchasesController --> Buyer: failed to make a purchase
+
+@enduml

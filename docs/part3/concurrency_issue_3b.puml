@@ -1,0 +1,63 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+hide footbox
+actor Buyer
+actor Seller
+
+activate Buyer
+activate Seller
+
+
+Buyer -> PurchaseController: doPost(reqB, resB)
+activate PurchaseController
+Seller -> PurchaseController: doPost(reqS, resS)
+deactivate Buyer
+deactivate Seller
+note left
+These two POST
+requests were received
+at the same time.
+end note
+
+activate ExclusiveWriteManager
+note right
+Let Seller's thread get the lock first.
+Buyer's thread starts to wait for the lock.
+Function calls to achieve authorisation, and
+to fetch data from the database has been
+omitted here.
+end note
+
+alt (buyer edit their own order && order.status == placed) || seller edit their own group's order
+    PurchaseController -> ExclusiveWriteManager: acquireLock(reqB.purchaseId, currThreadB=Thread.currentThread.getName())
+    PurchaseController -> ExclusiveWriteManager: acquireLock(reqS.purchaseId, currThreadS=Thread.currentThread.getName())
+    ExclusiveWriteManager --> PurchaseController: Seller's Thread acuired the lock
+    PurchaseController -> Database: readOne(reqS.purchaseId)
+    Database --> PurchaseController: purchaseInDB
+
+    alt reqS.originalQuantity != purchaseInDB.quantity
+        PurchaseController -> PurchaseController: DatabaseAlreadyUpdated <<exception>>
+    else purchaseInDB.status == cancelled || purchaseInDB.status == fulfilled
+        PurchaseController -> PurchaseController: DatabaseAlreadyUpdated <<exception>>
+    else
+        PurchaseController -> ExclusiveWriteManager: acquireLock(purchaseInDB.listing.id, currThreadS)
+        alt reqS.change > purchaseInDB.listing.quantity
+            PurchaseController -> PurchaseController: InvalidQuantityException <<exception>>
+        else
+            PurchaseController -> Database: Update the quantity
+        end
+    end
+    PurchaseController -> ExclusiveWriteManager: release the acquired lock(s)
+else
+    PurchaseController --> Buyer: redirect to login page
+end
+
+deactivate Buyer
+ExclusiveWriteManager --> PurchaseController: Buyer's Thread acuired the lock
+PurchaseController -> Database: readOne(reqB.purchaseId)
+note left
+Buyer's thread acquires the write lock and
+begin processing.
+end note
+@enduml

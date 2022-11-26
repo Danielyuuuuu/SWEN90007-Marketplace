@@ -1,0 +1,69 @@
+ @startuml Unit of Work Sequence Diagram
+
+    hide footbox
+
+    participant PurchaseController as PC
+    participant UnitOfWork as UOW
+    participant FixedPriceListingMapper as LM
+    participant PurchaseMapper as PM
+    database Database as DB
+
+    -> PC : doPost(req, res)
+    activate PC
+
+    PC -> LM : readOne(id)
+    activate LM
+
+    LM -> DB : SELECT * FROM fixed_price_listing WHERE id = id
+    activate DB
+
+    DB --> LM : ResultSet
+    deactivate DB
+
+    LM --> PC : Listing
+    deactivate LM
+
+    PC -> PC : Listing.updateQuantity()
+
+    note left
+        The Listing
+        and Purchase
+        Have been removed
+        as participants
+        in the sequence diagram
+        for the sake of simplicity
+    end note
+
+    PC -> UOW : registerDirty(Listing)
+    activate UOW
+    deactivate UOW
+
+    PC -> PC : new Purchase(Listing, quantity)
+
+    PC -> UOW : registerNew(Purchase)
+    activate UOW
+    deactivate UOW
+
+    PC -> UOW : commit()
+    activate UOW
+
+    UOW -> LM : update(Listing)
+    activate LM
+
+    LM -> DB : UPDATE fixed_price_listing SET quantity = newQuantity WHERE id = id
+    activate DB
+    deactivate DB
+    deactivate LM
+
+    UOW -> PM : create(Purchase)
+    activate PM
+
+    PM -> DB : INSERT INTO purchase (...) VALUES (...)
+    activate DB
+    deactivate DB
+    deactivate PM
+    deactivate UOW
+
+    <-- PC : sendRedirect("purchases")
+
+@enduml

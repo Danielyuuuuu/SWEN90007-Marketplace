@@ -1,0 +1,64 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+hide footbox
+
+activate System
+
+activate Thread
+Thread -> ExclusiveWriteManager: getInstance()
+
+activate ExclusiveWriteManager
+ExclusiveWriteManager --> Thread: return ExclusiveWriteManager
+deactivate ExclusiveWriteManager
+
+Thread -> ExclusiveWriteManager: acquireLock(object.id, Thread.currentThread().getName())
+activate ExclusiveWriteManager
+
+ExclusiveWriteManager -> ConcurrentMap: check if the map contains the object.id
+activate ConcurrentMap
+ConcurrentMap --> ExclusiveWriteManager: result
+deactivate ConcurrentMap
+
+loop result == true
+
+    ExclusiveWriteManager -> ExclusiveWriteManager: wait()
+    System -> ExclusiveWriteManager: notify
+
+    note right
+    if the object is in use by another
+    thread, the ExclusiveWriteManager 
+    will put the thread into wait until 
+    notified by the system.
+
+    Note:
+    When a thread releases an object 
+    from the lock manager, it will call 
+    the notifyAll() function to the system 
+    to wake up all the threads that are 
+    currently in the waiting stage
+    end note
+
+    ExclusiveWriteManager -> ConcurrentMap: check if the map contains the object.id
+    activate ConcurrentMap
+    ConcurrentMap --> ExclusiveWriteManager: result
+    deactivate ConcurrentMap
+end
+
+ExclusiveWriteManager -> ConcurrentMap: put(object.id, Thread.currentThread().getName());
+activate ConcurrentMap
+deactivate ConcurrentMap
+deactivate ExclusiveWriteManager
+
+Thread -> Thread: do stuff
+
+Thread -> ExclusiveWriteManager: releaseLock(object.id, Thread.currentThread().getName())
+activate ExclusiveWriteManager
+ExclusiveWriteManager -> ConcurrentMap: remove(object.id, Thread.currentThread().getName());
+activate ConcurrentMap
+deactivate ConcurrentMap
+ExclusiveWriteManager -> System: notifyAll()
+deactivate ExclusiveWriteManager
+deactivate Thread
+
+@enduml

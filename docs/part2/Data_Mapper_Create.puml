@@ -1,0 +1,53 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+hide footbox
+
+
+-> UserController: doPost(req, res)
+activate UserController
+
+UserController -> UserMapper: readOne(userId)
+activate UserMapper
+
+UserMapper -> Database: SELECT * FROM account WHERE id = userId
+activate Database
+
+Database --> UserMapper: resultSet
+deactivate Database
+
+create "aUserInDb: User"
+UserMapper --> "aUserInDb: User": create(id=userId, firstname=resultSet.getString("firstname"), ...)
+
+
+UserMapper --> UserController: aUserInDb
+deactivate UserMapper
+
+alt req.getParameter(firstname) == null
+    UserController -> "aUserInDb: User": getFirstName()
+    activate "aUserInDb: User"
+
+    "aUserInDb: User" --> UserController: firstname
+    deactivate "aUserInDb: User"
+else req.getParameter(firstname) != null
+    UserController -> UserController: firstname = req.getParameter(firstname)
+    end
+note right
+This block is repeated
+for all attributes of a User Object.
+Not in a loop frame as it is
+not done in a formal loop
+end note
+
+create "userToUpdate: User"
+UserController --> "userToUpdate: User": instantiate(id=userId, firstname,..., seller_group)
+
+UserController -> UserMapper: update(userToUpdate)
+activate UserMapper
+
+UserMapper -> Database: UPDATE account SET firstname...WHERE id=userId
+activate Database
+
+
+
+@enduml

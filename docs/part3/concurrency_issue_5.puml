@@ -1,0 +1,76 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+hide footbox
+actor BuyerA
+actor BuyerB
+
+activate BuyerA
+activate BuyerB
+
+
+BuyerA -> PurchasesController: doPost(reqA, resA)
+activate PurchasesController
+BuyerB -> PurchasesController: doPost(reqB, resB)
+deactivate BuyerA
+deactivate BuyerB
+note left
+These two POST
+requests were received
+at the same time.
+end note
+
+activate ExclusiveWriteManager
+note right
+Let threadA get the lock first.
+ThreadB starts to wait for the lock
+end note
+
+PurchasesController -> ExclusiveWriteManager: acquireLock(reqA.id, currThreadA=Thread.currentThread().getName())
+PurchasesController -> ExclusiveWriteManager: acquireLock(reqB.id, currThreadB=Thread.currentThread().getName())
+ExclusiveWriteManager --> PurchasesController: BuyerA's thread acquired the lock
+
+
+PurchasesController -> FixPriceListingMapper: readOne(reqA.id)
+activate FixPriceListingMapper
+FixPriceListingMapper --> PurchasesController: listing
+deactivate FixPriceListingMapper
+
+
+alt listing.getArchive() == true
+    PurchasesController -> PurchasesController: DatabaseAlreadyUpdated <<exception>>
+else listing.getQuantity() < reqA.quantity
+    PurchasesController -> PurchasesController: DatabaseAlreadyUpdated <<exception>>
+else otherwise
+    PurchasesController -> Database: Create a new purchase
+    note left
+    The implementation
+    details of creating
+    a new purchase has
+    been omitted as it is
+    not the focus here
+    end note
+end
+
+
+
+PurchasesController -> ExclusiveWriteManager: releaseLock(reqA.id, currThreadA)
+deactivate BuyerA
+ExclusiveWriteManager --> PurchasesController: BuyerB's thread acquired the lock
+note left
+Thread B can get the
+lock now that threadA
+has released it. The above
+function calls will be
+repeated. We will omit the
+details here.
+end note
+PurchasesController -> FixPriceListingMapper: readOne(reqB.id)
+activate FixPriceListingMapper
+
+
+
+
+
+
+@enduml

@@ -1,0 +1,29 @@
+@startuml
+'https://plantuml.com/class-diagram
+
+object Listing {
+    id
+    listingTitle
+    quantity
+    price
+    description
+    product
+    seller_group
+    archive
+    listingType
+}
+
+object FixPriceListing {
+}
+
+object AuctionListing {
+    start_time
+    end_time
+
+}
+
+Listing <|-- FixPriceListing
+Listing <|-- AuctionListing
+
+
+@enduml

@@ -1,0 +1,32 @@
+@startuml View all users
+
+hide footbox
+actor Admin
+
+activate Admin
+Admin -> AccessDecisionManager: view all users
+deactivate Admin
+activate AccessDecisionManager
+
+AccessDecisionManager -> AccessDecisionManager: decide()
+AccessDecisionManager -> AdminController: view all users
+deactivate AccessDecisionManager
+activate AdminController
+AdminController -> UserMapper: readList()
+activate UserMapper
+UserMapper -> PostgreSQL: SELECT * FROM account WHERE role in ('USER', 'SELLER');
+activate PostgreSQL
+PostgreSQL --> UserMapper: resultSet
+deactivate PostgreSQL
+create "users: ArrayList<User>"
+UserMapper --> "users: ArrayList<User>": instantiate()
+UserMapper --> AdminController: users
+deactivate UserMapper
+
+note left
+  The Admin will be 
+  redirected to the
+  view all users page
+end note
+
+@enduml

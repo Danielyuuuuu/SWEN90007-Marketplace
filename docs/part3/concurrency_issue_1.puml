@@ -1,0 +1,58 @@
+@startuml View all users
+
+hide footbox
+actor Admin
+actor Seller
+
+activate Admin
+Admin -> SellerGroupController: delete seller from the seller group
+activate SellerGroupController
+SellerGroupController -> ExclusiveWriteManager: acquireLock(userID, threadName)
+activate ExclusiveWriteManager
+ExclusiveWriteManager --> SellerGroupController: lock acquired
+create "user: User"
+SellerGroupController -> "user: User": instantiate user without the seller group
+SellerGroupController -> UserMapper: update(user, conn)
+activate UserMapper
+UserMapper -> PostgreSQL: UPDATE account SET seller_group = null WHERE id = user.getId();
+activate PostgreSQL
+PostgreSQL --> UserMapper: resultSet
+deactivate PostgreSQL
+
+UserMapper --> SellerGroupController: success
+deactivate UserMapper
+
+SellerGroupController -> ExclusiveWriteManager: releaseLock(userID, threadName)
+
+ExclusiveWriteManager --> SellerGroupController: lock released
+deactivate ExclusiveWriteManager
+SellerGroupController --> Admin: success
+deactivate SellerGroupController 
+deactivate Admin
+
+
+activate Seller
+Seller -> ListingController: create a new listing
+activate ListingController
+
+ListingController -> UserMapper: readOneByEmail(userEmail)
+activate UserMapper
+
+UserMapper -> PostgreSQL: SELECT * FROM account WHERE email = ?;
+activate PostgreSQL
+PostgreSQL --> UserMapper: resultSet
+deactivate PostgreSQL
+
+create "user: User"
+UserMapper -> "user: User": create the user object
+
+UserMapper --> ListingController: user
+deactivate UserMapper
+
+ListingController -> ListingController: check if the user has the SELLER role
+
+ListingController -> ListingController: SecurityContextHolder.clearContext()
+
+ListingController --> Seller: redirect to login page
+
+@enduml

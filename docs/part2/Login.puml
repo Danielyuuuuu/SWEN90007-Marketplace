@@ -1,0 +1,38 @@
+@startuml Login
+
+hide footbox
+actor Buyer
+
+activate Buyer
+Buyer -> AuthenticationManager: login(email, password)
+deactivate Buyer
+activate AuthenticationManager
+
+AuthenticationManager -> UserDetailsService: loadBuyerByBuyername(email)
+activate UserDetailsService
+UserDetailsService -> BuyerMapper: readOneByEmail(email)
+activate BuyerMapper
+BuyerMapper -> PostgreSQL: SELECT * FROM account WHERE email = email;
+activate PostgreSQL
+PostgreSQL --> BuyerMapper: resultSet
+deactivate PostgreSQL
+create "user: User"
+BuyerMapper --> "user: User": instantiate()
+BuyerMapper --> UserDetailsService: user
+deactivate BuyerMapper
+create "userDetails: UserDetails"
+UserDetailsService --> "userDetails: UserDetails": instantiate()
+UserDetailsService --> AuthenticationManager: userDetails
+deactivate UserDetailsService
+
+AuthenticationManager -> AuthenticationManager: authenticate()
+
+
+note left
+  The Buyer will be 
+  redirected to their 
+  coorsponding pages 
+  after a successful login
+end note
+
+@enduml

@@ -1,0 +1,41 @@
+@startuml Get fixed price listing Lazy Load
+
+hide footbox
+actor Buyer
+
+activate Buyer
+Buyer -> ListingController: doGet()
+deactivate Buyer
+note left
+  The buyer is at the 
+  view all listings page 
+  and has clicked onto 
+  a fixed price listing
+end note
+
+activate ListingController
+create "listing: FixPriceListing"
+ListingController --> "listing: FixPriceListing": instantiate()
+activate "listing: FixPriceListing"
+ListingController -> "listing: FixPriceListing": isVisibleForBuyer()
+"listing: FixPriceListing" -> FixPriceListingMapper: readOne()
+activate FixPriceListingMapper
+FixPriceListingMapper -> PostgreSQL: SELECT * FROM fixed_price_listing WHERE id = listingID;
+activate PostgreSQL
+PostgreSQL --> FixPriceListingMapper: resultSet
+deactivate PostgreSQL
+FixPriceListingMapper --> "listing: FixPriceListing": resultSet
+deactivate FixPriceListingMapper
+"listing: FixPriceListing" --> ListingController: true
+deactivate "listing: FixPriceListing"
+
+note left
+  The buyer will be 
+  redirected to the 
+  fixed price listing
+  page and all the 
+  lisitng informations
+  will be displayed there
+end note
+
+@enduml

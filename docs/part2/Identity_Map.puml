@@ -1,0 +1,25 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+hide footbox
+
+->SellerGroupController: doPost()
+activate SellerGroupController
+
+SellerGroupController -> UUID: randomUUID
+activate UUID
+UUID --> SellerGroupController: randomId
+deactivate UUID
+
+create "sg:SellerGroup"
+SellerGroupController --> "sg:SellerGroup": create(ID=randomId.toString(), name)
+
+SellerGroupController -> SellerGroupMapper: create(sg)
+activate SellerGroupMapper
+
+SellerGroupMapper -> Database: INSERT INTO seller_group VALUES id=ID, ...
+activate Database
+
+
+
+@enduml

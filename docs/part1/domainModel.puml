@@ -1,0 +1,63 @@
+@startuml domainModel
+hide empty members
+
+object User {
+    email
+    password
+}
+
+object SellerGroup {
+    name
+}
+
+object Admin {
+    email
+    password
+}
+
+object Product {
+    category
+    brand
+    name
+}
+
+object FixedPriceListing {
+    quantity
+    price
+    description
+}
+
+object AuctionListing {
+    startTime
+    endTime
+    price
+    description
+    bidCounter
+}
+
+object Order {
+    quantity
+    price
+    buyerName
+    shippingAddress
+}
+
+enum Status {
+    placed
+    processed
+    fulfilled
+    cancelled
+}
+
+SellerGroup       "1"   --* "*"   FixedPriceListing : < Created by
+FixedPriceListing "*"   *-- "1"   Product           : > Sells
+AuctionListing    "*"   *-- "1"   Product           : > Auctions
+User              "0,1" --* "*"   AuctionListing    : < Records highest bidder
+SellerGroup       "1"   --* "*"   AuctionListing    : < Created by
+User              "1"   --* "*"   Order             : < Placed by
+SellerGroup       "1"   --* "*"   Order             : < Fulfilled by
+Order             "*"   *-- "1"   Product           : > Records sale of
+User              "*"   *-- "0,1" SellerGroup       : > Part of
+Order             "*"   *-- "1"   Status            : > Has Status
+
+@enduml

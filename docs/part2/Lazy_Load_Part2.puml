@@ -1,0 +1,27 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+hide footbox
+-> "aPurchase: Purchase": getBuyer()
+activate "aPurchase: Purchase"
+
+"aPurchase: Purchase" -> "aPurchase: Purchase": firstname = this.getBuyer().getFirstname()
+
+alt firstname == null
+    "aPurchase: Purchase" -> "aPurchase: Purchase": buyId = this.getBuyer().getId()
+    create UserMapper
+    "aPurchase: Purchase" --> UserMapper: create()
+    activate UserMapper
+
+    UserMapper -> Database: readOne(id=userId)
+    activate Database
+
+    Database --> UserMapper: resultSet
+    UserMapper --> "buyer: User": create(id=userId, firstname, ...)
+    UserMapper --> "aPurchase: Purchase": buyer
+
+end
+
+
+
+@enduml

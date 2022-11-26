@@ -1,0 +1,65 @@
+@startuml Association_Table_Mapping_Seller
+
+hide footbox
+actor Seller
+
+activate Seller
+Seller -> ListingController: doPost(auctionListingId)
+deactivate Seller
+
+activate ListingController
+ListingController -> AuctionListingMapper: readOne(auctionListingId)
+
+note top
+
+    The team uses 
+    readOne in this 
+    diagram to get 
+    the auctionListing 
+    object where 
+    it is a relax 
+    version of the 
+    lazy load
+    approach. Both
+    lazy load and
+    readOne fetch
+    the auctionLisitng
+    data from the database,
+    since lazy load is not
+    the focal point of
+    this diagram. Thus, for
+    simplicity reason readOne 
+    method has been used
+    instead.
+
+end note
+
+activate AuctionListingMapper
+AuctionListingMapper -> BidMapper: getBidCounter(auctionListingId)
+activate BidMapper
+BidMapper -> PostgreSQL_bid_table: SELECT COUNT(id) as bidCounter FROM bid WHERE auction_listing = auctionListingId
+activate PostgreSQL_bid_table
+PostgreSQL_bid_table --> BidMapper: bidCounter
+deactivate PostgreSQL_bid_table
+BidMapper --> AuctionListingMapper: bidCounter
+deactivate BidMapper
+
+AuctionListingMapper -> BidMapper: getHighestBidder(auctionListingId)
+activate BidMapper
+BidMapper -> PostgreSQL_bid_table: SELECT buyer FROM bid WHERE auction_listing = auctionListingId ORDER BY bid_price DESC 
+activate PostgreSQL_bid_table
+PostgreSQL_bid_table --> BidMapper: highestBidder
+deactivate PostgreSQL_bid_table
+BidMapper --> AuctionListingMapper: highestBidder
+deactivate BidMapper
+
+AuctionListingMapper -> AuctionListingMapper: load bidCounter and highestBidder into auctionListing
+
+AuctionListingMapper --> ListingController: auctionListing
+ListingController --> Seller: display the auction Listing page
+deactivate ListingController
+
+
+
+
+@enduml

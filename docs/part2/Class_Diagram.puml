@@ -1,0 +1,202 @@
+@startuml
+
+skinparam classAttributeIconSize 0
+hide empty members
+
+package "Domain Model layer" {
+    class User
+    class SellerGroup
+    class FixPriceListing
+    class AuctionListing
+    class Purchase
+    class Product
+    class Category
+    class Listing
+    User -[hidden]> SellerGroup
+    SellerGroup -[hidden]> FixPriceListing
+    FixPriceListing -[hidden]> AuctionListing
+    AuctionListing -[hidden]> Purchase
+    Purchase -[hidden]> Product
+    Product -[hidden]> Category
+
+
+}
+
+package "Data Source layer" {
+    class UserMapper
+    class SellerGroupMapper
+    class FixPriceListingMapper
+    class AuctionListingMapper
+    class PurchaseMapper
+    class ProductMapper
+    class BidMapper
+    class CategoryMapper
+    class DataMapper
+    class Mapper
+
+    UserMapper -[hidden]> SellerGroupMapper
+    SellerGroupMapper -[hidden]> FixPriceListingMapper
+    FixPriceListingMapper -[hidden]> AuctionListingMapper
+    AuctionListingMapper -[hidden]> PurchaseMapper
+    PurchaseMapper -[hidden]> ProductMapper
+    ProductMapper -[hidden]> CategoryMapper
+    CategoryMapper -[hidden]> BidMapper
+}
+
+package "Presentation layer" {
+    class UserController
+    class SellerGroupController
+    class ListingController
+    class PurchaseController
+    class PurchasesController
+    class AdminController
+    class RegisterUserController
+    class IndexController
+
+
+    AdminController -[hidden]> RegisterUserController
+    UserController -[hidden]> SellerGroupController
+    SellerGroupController -[hidden]> ListingController
+    ListingController -[hidden]> PurchaseController
+    PurchaseController -[hidden]> PurchasesController
+}
+
+"Presentation layer" -[hidden]-> "Data Source layer"
+"Data Source layer" -[hidden]->  "Domain Model layer"
+
+
+UserController --> UserMapper
+SellerGroupController --> UserMapper
+SellerGroupController --> SellerGroupMapper
+ListingController --> FixPriceListingMapper
+ListingController --> AuctionListingMapper
+ListingController --> UserMapper
+ListingController --> SellerGroupMapper
+ListingController --> ProductMapper
+ListingController --> BidMapper
+PurchaseController ..> PurchaseMapper
+PurchasesController ..> UserMapper
+PurchasesController ..> PurchaseMapper
+PurchasesController ..> UnitOfWork
+PurchaseController ..> UnitOfWork
+RegisterUserController --> UserMapper
+AdminController --> UserMapper
+IndexController --> UserMapper
+
+UnitOfWork ..> DataMapper
+
+UserMapper ..> User
+SellerGroupMapper ..> SellerGroup
+FixPriceListingMapper ..> FixPriceListing
+AuctionListingMapper ..> AuctionListing
+PurchaseMapper ..> Purchase
+ProductMapper ..> Product
+CategoryMapper ..> Category
+
+class User {
+
+}
+
+class SellerGroup {
+
+}
+
+abstract class Listing{
+
+}
+
+class FixPriceListing {
+
+}
+
+class AuctionListing {
+
+}
+
+class Purchase {
+
+}
+
+class Product {
+
+}
+
+class Category {
+
+}
+
+
+
+abstract class Mapper<T> {
+
+}
+
+class UserMapper {
+
+}
+
+class SellerGroupMapper {
+
+}
+
+class FixPriceListingMapper {
+
+}
+
+class AuctionListingMapper {
+
+}
+
+class PurchaseMapper {
+
+}
+
+class ProductMapper {
+
+}
+
+class BidMapper{
+
+}
+
+class CategoryMapper {
+}
+
+class DataMapper{}
+
+
+class UserController {
+
+}
+
+class SellerGroupController {
+
+}
+
+
+class ListingController {
+
+}
+
+
+class PurchaseController {
+
+}
+
+class AdminController {
+
+}
+
+class RegisterUserController {
+
+}
+
+class IndexController {
+
+}
+
+
+class UnitOfWork {
+}
+
+@enduml

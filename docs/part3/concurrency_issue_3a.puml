@@ -1,0 +1,108 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+hide footbox
+actor Buyer
+actor Seller
+
+activate Buyer
+activate Seller
+
+
+Buyer -> PurchaseController: doPost(reqB, resB)
+activate PurchaseController
+Seller -> PurchaseController: doPost(reqS, resS)
+deactivate Buyer
+deactivate Seller
+note left
+These two POST
+requests were received
+at the same time.
+end note
+
+activate ExclusiveWriteManager
+note right
+Let Buyer's thread get the lock first.
+Seller's thread starts to wait for the lock
+end note
+
+
+PurchaseController -> Database: readOne(reqB.purchaseId)
+note left
+1. The details of PurchaseController
+calling the mapper to retrieve
+data has been omitted.
+2. Also, Seller's thread goes through
+the same authorisation steps at the same
+time. They are not drawn for readability.
+end note
+activate Database
+Database --> PurchaseController: purchaseAuth
+
+PurchaseController -> SecurityContextHolder: find current user's email
+SecurityConTextHolder --> PurchaseController: email
+PurchaseController -> Database: readOneByEmail(email)
+Database --> PurchaseController: user
+
+alt reqB.status == cancelled
+    alt (user is a Seller && user.id == purchaseAuth.seller.id) || (user is a Buyer && user.id == purchaseAuth.buyer.id)
+        PurchaseController -> ExclusiveWriteManager: acquireLock(reqS.purchaseId, currThreadS=Thread.currentThread.getName())
+        PurchaseController -> ExclusiveWriteManager: acquireLock(reqB.purchaseId, currThreadB=Thread.currentThread.getName())
+        ExclusiveWriteManager --> PurchaseController: Buyer's Thread acquired the lock
+        PurchaseController -> Database: readOne(reqB.purchaseId)
+        Database --> PurchaseController: purchaseInDB
+        alt purchaseInDB.status == fulfilled
+            PurchaseController -> PurchaseController: DatabaseAlreadyUpdated <<exception>>
+        else purchaseInDB.status == placed || purchaseInDB.status == processed
+            PurchaseController -> ExclusiveWriteManager: acquireLock(purchaseInDB.listing.id, currThreadB)
+            PurchaseController -> Database: Update
+            note right
+            The update here will use Unit Of Work to
+            make the purchaseInDB.status to "cancelled"
+            and it will add the purchaseInDB.quantity
+            back to the associated listing
+            end note
+        end
+        PurchaseController -> ExclusiveWriteManager: release the acquired lock(s)
+    else
+        PurchaseController --> Buyer: redirect to login page
+    end
+
+else reqB.status == processed
+    note left
+    Update the status to
+    "cancelled" (i.e. cancel
+    the purchase)
+    end note
+    alt user is a Seller && user.sellerGroup == purchaseAuth.sellerGroup
+        PurchaseController -> ExclusiveWriteManager: acquireLock(reqB.purchaseId, currThreadB=Thread.currentThread.getName())
+        PurchaseController -> Database: readOne(reqB.purchaseId)
+        Database --> PurchaseController: purchaseInDB
+        alt purchaseInDB.status == cancelled || purchaseInDB.status == fulfilled
+            PurchaseController -> PurchaseController: DatabaseAlreadyUpdated <<exception>>
+        else
+            PurchaseController -> Database: Update the purchase status to 'processed'
+            note right
+            The update details are omitted
+            end note
+        end
+
+    else
+        PurchaseController --> Buyer: redirect to login page
+    end
+    note left
+    Update the status to
+    "processed" (i.e. process
+    the purchase)
+    end note
+
+end
+
+deactivate Buyer
+ExclusiveWriteManager --> PurchaseController: Seller's Thread acquired the lock
+PurchaseController -> Database: readOne(reqS.purchaseId)
+note left
+Seller's thread acquires the write lock and
+begin processing.
+end note
+@enduml

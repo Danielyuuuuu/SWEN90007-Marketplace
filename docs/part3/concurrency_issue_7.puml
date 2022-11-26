@@ -1,0 +1,115 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+hide footbox
+
+actor Buyer1
+actor Buyer2
+
+activate Buyer1
+activate Buyer2
+
+Buyer1 -> "ListingController: buyer1": place a bid to an auction listing
+activate "ListingController: buyer1"
+Buyer2 -> "ListingController: buyer2": place a bid to an auction listing
+activate "ListingController: buyer2"
+
+note right
+Assume both buyer1 and buyer2 place a bid to 
+the same auction listing with the same price
+and buyer1's bid get processed first, while
+buyer2's bid get rejected.
+end note
+
+deactivate Buyer1
+deactivate Buyer2
+
+"ListingController: buyer1" --> UserMapper: readOneByEmail(Buyer1Email) //get buyer1's details
+activate UserMapper
+deactivate UserMapper
+
+"ListingController: buyer2" --> UserMapper: readOneByEmail(Buyer2Email) //get buyer2's details
+activate UserMapper
+deactivate UserMapper
+
+note right
+Assume "ListingController: buyer1" 
+and "ListingController: buyer2" 
+use the same mapper classes due to 
+simplicity reason. 
+
+The details of the mapper classes 
+and database have been omitted as well.
+end note
+
+
+"ListingController: buyer1" -> ExclusiveWriteManager: acquireLock(listingId, buyer1.thread.name);
+activate ExclusiveWriteManager
+deactivate ExclusiveWriteManager
+
+"ListingController: buyer2" -> ExclusiveWriteManager: acquireLock(listingId, buyer2.thread.name);
+activate ExclusiveWriteManager
+ExclusiveWriteManager -> ExclusiveWriteManager: wait()
+deactivate ExclusiveWriteManager
+deactivate "ListingController: buyer2"
+
+
+
+"ListingController: buyer1" --> AuctionListingMapper: readOne(listingId) //get auctionLisint's details
+activate AuctionListingMapper
+create "AuctionListing"
+AuctionListingMapper --> AuctionListing: query and get
+deactivate AuctionListingMapper
+"ListingController: buyer1" -> AuctionListing: placeBid(price, buyer1, conn)
+activate AuctionListing
+AuctionListing -> AuctionListing: input validation
+AuctionListing -> AuctionListing: setPrice(price)
+AuctionListing -> AuctionListingMapper: update(this, conn)
+activate AuctionListingMapper
+deactivate AuctionListingMapper
+AuctionListing -> BidMapper: create(price, user.getId(), this.getId(), conn)
+activate BidMapper
+deactivate BidMapper
+deactivate AuctionListing
+
+"ListingController: buyer1" -> ExclusiveWriteManager: releaseLock(listingId, buyer1.thread.name);
+activate ExclusiveWriteManager
+ExclusiveWriteManager -> ExclusiveWriteManager : notifyAll()
+deactivate ExclusiveWriteManager
+deactivate "ListingController: buyer1"
+
+-> ExclusiveWriteManager: notify
+activate "ListingController: buyer2"
+note right
+Complete the remaining process of 
+acquiring the lock for buyer 2, which 
+has been put on wait previously.
+end note
+
+activate ExclusiveWriteManager
+deactivate ExclusiveWriteManager
+"ListingController: buyer2" --> AuctionListingMapper: readOne(listingId) //get auctionLisint's details
+activate AuctionListingMapper
+create "AuctionListing"
+AuctionListingMapper --> AuctionListing: query and get
+deactivate AuctionListingMapper
+"ListingController: buyer2" -> AuctionListing: placeBid(price, buyer2, conn)
+activate AuctionListing
+AuctionListing -> AuctionListing: input validation
+AuctionListing -> "ListingController: buyer2": throw new IllegalArgumentException("Input price should greater or equal to current price + 1 or you have been outbid");
+
+
+@enduml
+
+
+
+
+
+
+
+
+
+
+
+
+

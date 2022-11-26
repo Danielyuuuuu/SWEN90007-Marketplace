@@ -1,0 +1,127 @@
+@startuml
+'https://plantuml.com/class-diagram
+
+skinparam classAttributeIconSize 0
+
+User "0..*" --> "1" SellerGroup: belongs to >
+User "0..*" --> "1" Role: has >
+Listing "0..*" --> "1" SellerGroup: sold by >
+Listing "0..*" --> "1" Product: sells >
+Listing <|-- FixPriceListing
+Listing <|-- AuctionListing
+Purchase "0..*" --> "1" Listing: generated from >
+Purchase "0..*" --> "1" User: bought by >
+Purchase "0..*" --> "1" Product: has a >
+Purchase "0..*" --> "1" SellerGroup: managed by >
+Purchase "0..*" --> "1" Status: has >
+
+
+AuctionListing "0..*" --> "1" User: has a highestBidder
+Product "0..*" --> "1" Category: has >
+
+DomainObject <|-- User
+DomainObject <|-- Product
+DomainObject <|-- Listing
+DomainObject <|-- Category
+DomainObject <|-- Purchase
+DomainObject <|-- SellerGroup
+
+
+note as n1
+    The AuctionListing class has a
+    many-to-many relationship with User.
+    The one-to-many relationship drawn
+    between the AuctionListing and User
+    in this diagram only means that an
+    AuctionListing object stores a single
+    highestBidder in addition to the
+    many-to-many relationship. The many-to-many
+    relationship is explained in the Association
+    Table Mapping section of the report
+end note
+
+class User {
+- email: String
+- password: String
+- firstname: String
+- lastname: String
+- shippingAddress: String
+}
+
+class SellerGroup {
+- name: String
+- load() void
+}
+
+abstract class Listing{
+# listingTitle: String
+# quantity: Int
+# price: Double
+# description: String
+# archive: Boolean
++ isVisibleForBuyer(): Boolean
++ isVisibleForSeller(): Boolean
++ load(): void
++ updateQuantity(change: int): void
+}
+
+class FixPriceListing {
++ load(): void
++ isVisibleForBuyer(): Boolean
+}
+
+class AuctionListing {
+- auctionDuration: Int
+# bidCounter: Int
+# highestBidder: User
+# startTime: Timestamp
+# endTime: Timestamp
++ load(): void
++ isExpire(): Boolean
++ isVisibleForBuyer(): Boolean
++ isOrderCreate(): Boolean
++ placeBid(price: Double, user: User): void
+}
+
+class Purchase {
+- quantity: Int
+- price: Double
+- title: String
+- buyerEmail: String
+- shippingAddress: String
++ updateQuantity(change: int): void
+
+}
+
+class Product {
+- category: Category
+- brand: String
+- name: String
+- reload(): void
+}
+
+class Category {
+- name: String
+}
+
+enum Role {
+ADMIN
+USER
+SELLER
+}
+
+
+enum Status {
+order_placed,
+PROCESSED,
+FULFILLED,
+CANCELLED
+}
+
+class DomainObject {
+- id: String
+- getId(): String
+}
+
+
+@enduml

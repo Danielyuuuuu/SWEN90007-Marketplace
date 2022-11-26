@@ -1,0 +1,25 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+
+hide footbox
+-> ListingController: doGet()
+activate ListingController
+
+ListingController -> FixPriceListingMapper: readList()
+activate FixPriceListingMapper
+
+FixPriceListingMapper -> Database: SELECT * FROM fixed_price_listing
+activate Database
+
+Database --> FixPriceListingMapper: resultSet
+deactivate Database
+
+FixPriceListingMapper --> "allListings: ArrayList<FixPriceListing>": create(title=resultSet.getString("title"), ...)
+FixPriceListingMapper --> ListingController: allListings
+deactivate FixPriceListingMapper
+
+
+
+
+@enduml

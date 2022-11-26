@@ -1,0 +1,228 @@
+@startuml
+'https://plantuml.com/class-diagram
+
+skinparam classAttributeIconSize 0
+
+' User "0..*" --> "1" SellerGroup: belongs to >
+' User "0..*" --> "1" Role: has >
+' Listing "0..*" --> "1" SellerGroup: sold by >
+' Listing "0..*" --> "1" Product: sells >
+Listing <|-- FixPriceListing
+Listing <|-- AuctionListing
+Purchase "0..*" --> "1" Listing: generated from >
+' Purchase "0..*" --> "1" User: bought by >
+' Purchase "0..*" --> "1" Product: has a >
+' Purchase "0..*" --> "1" SellerGroup: managed by >
+' Purchase "0..*" --> "1" Status: has >
+Mapper <|-- PurchaseMapper
+Mapper <|-- AuctionListingMapper
+Mapper <|-- FixPriceListingMapper
+PurchaseController --> Purchase: uses >
+PurchaseController --> ExclusiveWriteManager: uses >
+' PurchaseController --> Role: uses >
+PurchaseController --> PurchaseMapper: uses >
+PurchaseController --> UnitOfWork: uses >
+PurchasesController --> Purchase: uses >
+PurchasesController --> ExclusiveWriteManager: uses >
+' PurchasesController --> Role: uses >
+PurchasesController --> PurchaseMapper: uses >
+PurchasesController --> AuctionListingMapper: uses >
+PurchasesController --> FixPriceListingMapper: uses >
+PurchasesController --> UnitOfWork: uses >
+' ListingController --> SellerGroup: uses >
+' ListingController --> Product: uses >
+' ListingController --> Role: uses >
+ListingController --> FixPriceListing: uses >
+ListingController --> AuctionListing: uses >
+ListingController --> AuctionListingMapper: uses >
+ListingController --> FixPriceListingMapper: uses >
+PurchaseMapper --> DBConnPool: uses >
+AuctionListingMapper --> DBConnPool: uses >
+FixPriceListingMapper --> DBConnPool: uses >
+
+
+' AuctionListing "0..*" --> "1" User: has a highestBidder
+' Product "0..*" --> "1" Category: has >
+
+' DomainObject <|-- User
+' DomainObject <|-- Product
+DomainObject <|-- Listing
+' DomainObject <|-- Category
+DomainObject <|-- Purchase
+' DomainObject <|-- SellerGroup
+
+
+' note as n1
+'     The AuctionListing class has a
+'     many-to-many relationship with User.
+'     The one-to-many relationship drawn
+'     between the AuctionListing and User
+'     in this diagram only means that an
+'     AuctionListing object stores a single
+'     highestBidder in addition to the
+'     many-to-many relationship. The many-to-many
+'     relationship is explained in the Association
+'     Table Mapping section of the report
+' end note
+
+' class User {
+' - email: String
+' - password: String
+' - firstname: String
+' - lastname: String
+' - shippingAddress: String
+' }
+
+' class SellerGroup {
+' - name: String
+' - load() void
+' }
+
+abstract class Listing{
+# listingTitle: String
+# quantity: Int
+# price: Double
+# description: String
+# archive: Boolean
++ isVisibleForBuyer(): Boolean
++ isVisibleForSeller(): Boolean
++ load(): void
++ updateQuantity(change: int): void
+}
+
+class FixPriceListing {
++ load(): void
++ isVisibleForBuyer(): Boolean
+}
+
+class AuctionListing {
+- auctionDuration: Int
+# bidCounter: Int
+# highestBidder: User
+# startTime: Timestamp
+# endTime: Timestamp
++ load(): void
++ isExpire(): Boolean
++ isVisibleForBuyer(): Boolean
++ isOrderCreate(): Boolean
++ placeBid(price: Double, user: User): void
+}
+
+class Purchase {
+- quantity: Int
+- price: Double
+- title: String
+- buyerEmail: String
+- shippingAddress: String
++ updateQuantity(change: int): void
+
+}
+
+' class Product {
+' - category: Category
+' - brand: String
+' - name: String
+' - reload(): void
+' }
+
+' class Category {
+' - name: String
+' }
+
+' enum Role {
+' ADMIN
+' USER
+' SELLER
+' }
+
+
+' enum Status {
+' placed,
+' processed,
+' fulfilled,
+' cancelled
+' }
+
+class DomainObject {
+- id: String
+- getId(): String
+}
+
+class PurchasesController {
++ doGet(HttpServletRequest request, HttpServletResponse response): void
++ doPost(HttpServletRequest request, HttpServletResponse response): void
+}
+
+class PurchaseController {
++ doGet(HttpServletRequest request, HttpServletResponse response): void
++ doPost(HttpServletRequest request, HttpServletResponse response): void
+- cancelPurchase(String status, String purchaseId): void
+- updateStatus(String status, int originalQuantity, String purchaseId): void
+- updateQuantity(String purchaseId, int originalQuantity, int change): void
+}
+
+class ListingController {
++ doGet(HttpServletRequest request, HttpServletResponse response): void
++ doPost(HttpServletRequest request, HttpServletResponse response): void
+- getUserRole(): Role
+}
+
+class ExclusiveWriteManager {
++ {static} instance: ExclusiveWriteManager
++ {static} getInstance(): ExclusiveWriteManager
++ acquireLock(String lockable, String owner): void
++ releaseLock(String lockable, String owner): void
++ releaseAllLock(String owner): void
+}
+
+abstract class Mapper {
++ {abstract} readList(): ArrayList<T>
++ {abstract} readOne(String id): T
++ {abstract} create(T newDocument, Connection conn): void
++ {abstract} update(T updatedDocument, Connection conn): void
+}
+
+class PurchaseMapper {
+- purchaseFromResultSet(ResultSet rs): Purchase
+- readListByBuyerID(String buyerID): ArrayList<Purchase>
+- readListBySellerID(String buyerID): ArrayList<Purchase>
+}
+
+class FixPriceListingMapper {
++ search(String listingTitle): ArrayList<FixPriceListing>
++ readListSeller(String sellerGroupId): ArrayList<FixPriceListing>
++ readListBuyer(): ArrayList<FixPriceListing>
+}
+
+class AuctionListingMapper {
++ search(String listingTitle): ArrayList<AuctionListing>
++ readListSeller(String sellerGroupId): ArrayList<AuctionListing>
++ readListBuyer(): ArrayList<AuctionListing>
+}
+
+class DBConnPool {
++ {static} instance: DBConnPool
+- maxPoolSize: int
+- inuseConnectionPool: ArrayList<Connection>
+- freeConnectionPool: ArrayList<Connection>
++ getInstance(): DBConnPool
++ getConnection(): Connection
++ releaseConnection(Connection conn): void
+- createConnection(): Connection
+- registerConnection(): Connection
+}
+
+class UnitOfWork {
+- {static} current: ThreadLocal
+- newObjects: List<DomainObject>
+- dirtyObjects: List<DomainObject>
++ {static} newCurrent(): void
++ {static} setCurrent(UnitOfWork uow): void
++ {static} getCurrent(): UnitOfWork
++ registerNew(DomainObject obj): void
++ registerDirty(DomainObject obj): void
++ commit(): void
+}
+
+
+@enduml

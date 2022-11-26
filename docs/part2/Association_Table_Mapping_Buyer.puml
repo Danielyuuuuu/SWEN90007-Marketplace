@@ -1,0 +1,39 @@
+@startuml Association_Table_Mapping_Buyer
+
+hide footbox
+actor Buyer
+
+activate Buyer
+Buyer -> ListingController: doPost(auctionListingId, price)
+deactivate Buyer
+activate ListingController
+ListingController --> AuctionListingMapper: readOne(auctionListingId)
+activate AuctionListingMapper
+create auctionListing
+AuctionListingMapper --> auctionListing: create
+deactivate AuctionListingMapper
+ListingController -> auctionListing: placeBid(price, user)
+activate auctionListing
+auctionListing -> auctionListing: setPrice(price)
+
+note top
+    The team had omit the 
+    process of connecting 
+    the AuctionListingMapper
+    to the database, as it 
+    is not the focul point 
+    of this diagram
+end note
+
+auctionListing -> AuctionListingMapper: update(auctionListing)
+activate AuctionListingMapper
+deactivate AuctionListingMapper
+auctionListing -> BidMapper: create(price, buyerId, listingId)
+activate BidMapper
+BidMapper -> PostgreSQL_bid_table: insert a new record
+
+
+deactivate BidMapper
+deactivate auctionListing
+
+@enduml

@@ -1,0 +1,36 @@
+@startuml usecase
+
+    left to right direction
+
+    actor Admin
+    actor Buyer
+    actor Seller
+
+    package MarketplaceSystem {
+        (Monitor System) as UC1
+        (Remove inappropriate listings) as UC2
+        (Create listing) as UC3
+        (Edit listing) as UC4
+        (Delete listing) as UC5
+        (Mark order as fulfilled) as UC6
+        (Purchase goods with fixed price) as UC7
+        (Purchase goods with auction) as UC8
+        (Modify order) as UC9
+        (Cancel order) as UC10
+    }
+
+    Admin --> UC1
+    Admin --> UC2
+    Seller --> UC3
+    Seller --> UC4
+    Seller --> UC5
+    Seller --> UC6
+    Buyer --> UC7
+    Buyer --> UC8
+    Seller --> UC9
+    Buyer --> UC9
+    Seller --> UC10
+    Buyer --> UC10
+
+
+@enduml

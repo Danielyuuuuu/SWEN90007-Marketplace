@@ -1,0 +1,32 @@
+@startuml Register
+
+hide footbox
+actor User
+
+activate User
+User -> RegisterUserController: register(email, password)
+deactivate User
+activate RegisterUserController
+RegisterUserController -> UserMapper: checkIfEmailExist(email)
+activate UserMapper
+UserMapper --> RegisterUserController: false
+deactivate UserMapper
+RegisterUserController -> RegisterUserController: encode(password)
+RegisterUserController -> UserMapper: create(user)
+activate UserMapper
+UserMapper -> PostgreSQL: INSERT INTO account VALUES (id, email, password, ...);
+PostgreSQL --> UserMapper: success
+UserMapper --> RegisterUserController: success
+deactivate UserMapper
+
+
+
+note left
+  The user will be 
+  redirected to the
+  login page after
+  the account has
+  been registered
+end note
+
+@enduml
